@@ -12,7 +12,7 @@ import confetti from 'canvas-confetti';
 const GameBoard = () => {
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const {
-        cards, moves, timer, isWon, isDisabled, startNewGame, handleCardClick, cols,
+        cards, moves, timer, isWon, isDisabled, startNewGame, handleChoice, cols,
         shakeCards, lastAction, clearLastAction
     } = useMemoryGame(difficulty);
     const { scores, saveScore, isHighScore } = useLeaderboard();
@@ -194,7 +194,7 @@ const GameBoard = () => {
                         isMatched={card.isMatched}
                         isShake={shakeCards.includes(card.id)}
                         disabled={isDisabled}
-                        onClick={() => handleCardClick(card.id)}
+                        onClick={() => handleChoice(card.id)}
                     />
                 ))}
             </Box>

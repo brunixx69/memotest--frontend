@@ -89,7 +89,7 @@ export const useMemoryGame = (difficulty: Difficulty) => {
         };
     }, [isPlaying, isWon]);
 
-    const handleCardClick = (id: number) => {
+    const handleChoice = (id: number) => {
         // Prevent clicking if disabled or already flipped/matched
         if (isDisabled) return;
 
@@ -167,7 +167,7 @@ export const useMemoryGame = (difficulty: Difficulty) => {
         isWon,
         isDisabled,
         startNewGame,
-        handleCardClick,
+        handleChoice,
         cols: DIFFICULTY_SETTINGS[difficulty].cols,
         shakeCards,
         lastAction,
