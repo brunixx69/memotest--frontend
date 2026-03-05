@@ -6,7 +6,7 @@ import Leaderboard from './Leaderboard';
 import { useMemoryGame, Difficulty } from '../hooks/useMemoryGame';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useSound } from '../hooks/useSound';
-import { Timer, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Timer, Volume2, VolumeX } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const GameBoard = () => {
@@ -26,6 +26,8 @@ const GameBoard = () => {
         if (lastAction === 'win') {
             playSound('win');
             triggerConfetti();
+            // Show modal slightly after confetti starts
+            setTimeout(() => setModalOpen(true), 1200);
         } else {
             playSound(lastAction);
         }
@@ -33,11 +35,6 @@ const GameBoard = () => {
         clearLastAction();
     }, [lastAction, playSound, clearLastAction]);
 
-    useEffect(() => {
-        if (isWon) {
-            setTimeout(() => setModalOpen(true), 1000); // Delay modal for confetti/fanfare
-        }
-    }, [isWon]);
 
     const triggerConfetti = () => {
         const duration = 3000;
@@ -91,6 +88,7 @@ const GameBoard = () => {
         startNewGame();
     };
 
+    const bestScore = scores[difficulty][0]?.moves ?? '--';
     const qualifiesForHighScore = isHighScore(difficulty, moves, timer);
 
     return (
@@ -160,8 +158,11 @@ const GameBoard = () => {
                         <Typography variant="caption" color="#64748B" letterSpacing={1}>MOVES</Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#FBBF24' }}>
-                        <Trophy size={24} />
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" fontWeight="bold" color="#FBBF24">
+                            {bestScore}
+                        </Typography>
+                        <Typography variant="caption" color="#64748B" letterSpacing={1}>BEST SCORE</Typography>
                     </Box>
 
                     <Box sx={{ textAlign: 'center' }}>

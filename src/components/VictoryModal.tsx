@@ -165,7 +165,7 @@ const VictoryModal = ({
                         transition: 'all 0.2s ease'
                     }}
                 >
-                    {isHighScore ? 'Immortalize Score' : 'Challenge Again'}
+                    {isHighScore ? 'Guardar y Reiniciar' : 'Reiniciar Desafío'}
                 </Button>
             </DialogActions>
         </Dialog>

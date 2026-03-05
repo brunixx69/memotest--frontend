@@ -17,8 +17,9 @@ const Card = ({ icon: Icon, isFlipped, isMatched, isShake, disabled, onClick }: 
                 className={`card-inner ${isFlipped || isMatched ? 'is-flipped' : ''} ${isMatched ? 'is-matched' : ''} ${isShake ? 'is-shaking' : ''} ${disabled ? 'is-disabled' : ''}`}
                 onClick={onClick}
             >
-                {/* Back of the card (the side seen first) */}
+                {/* Back of the card (the side seen first) - Pattern/Logo */}
                 <div className="card-front">
+                    <div className="card-pattern" />
                     <span>?</span>
                 </div>
 
