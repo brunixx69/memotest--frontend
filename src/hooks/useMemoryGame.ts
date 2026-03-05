@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Star, Heart, Zap, Moon, Sun, Cloud, Snowflake, Flame,
     Ghost, Anchor, Camera, Music, Gift, Coffee
@@ -13,6 +13,8 @@ export interface CardType {
     isFlipped: boolean;
     isMatched: boolean;
 }
+
+export type GameAction = 'flip' | 'match' | 'error' | 'win' | null;
 
 const ICONS = [
     Star, Heart, Zap, Moon, Sun, Cloud, Snowflake, Flame,
@@ -30,20 +32,49 @@ export const useMemoryGame = (difficulty: Difficulty) => {
     const [flippedCards, setFlippedCards] = useState<number[]>([]);
     const [matchedCards, setMatchedCards] = useState<number[]>([]);
     const [shakeCards, setShakeCards] = useState<number[]>([]);
-    const [moves, setMoves] = useState(0);
+    const [turns, setTurns] = useState(0);
     const [isWon, setIsWon] = useState(false);
-    const [canFlip, setCanFlip] = useState(true);
+    const [isDisabled, setIsDisabled] = useState(false);
     const [timer, setTimer] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
 
     // Return values to trigger sounds in GameBoard
-    const [lastAction, setLastAction] = useState<'flip' | 'match' | 'error' | 'win' | null>(null);
+    const [lastAction, setLastAction] = useState<GameAction>(null);
 
     const timerRef = useRef<number | null>(null);
 
+    const shuffleCards = useCallback(() => {
+        const numPairs = DIFFICULTY_SETTINGS[difficulty].pairs;
+        const selectedIcons = ICONS.slice(0, numPairs);
+        const duplicatedIcons = [...selectedIcons, ...selectedIcons];
+
+        return duplicatedIcons
+            .sort(() => Math.random() - 0.5)
+            .map((icon, index) => ({
+                id: index,
+                icon,
+                isFlipped: false,
+                isMatched: false,
+            }));
+    }, [difficulty]);
+
+    const startNewGame = useCallback(() => {
+        setCards(shuffleCards());
+        setFlippedCards([]);
+        setMatchedCards([]);
+        setShakeCards([]);
+        setTurns(0);
+        setIsWon(false);
+        setIsDisabled(false);
+        setTimer(0);
+        setIsPlaying(false);
+        setLastAction(null);
+        if (timerRef.current) clearInterval(timerRef.current);
+    }, [shuffleCards]);
+
     useEffect(() => {
         startNewGame();
-    }, [difficulty]);
+    }, [difficulty, startNewGame]);
 
     useEffect(() => {
         if (isPlaying && !isWon) {
@@ -58,53 +89,30 @@ export const useMemoryGame = (difficulty: Difficulty) => {
         };
     }, [isPlaying, isWon]);
 
-    const shuffleCards = () => {
-        const numPairs = DIFFICULTY_SETTINGS[difficulty].pairs;
-        const selectedIcons = ICONS.slice(0, numPairs);
-        const duplicatedIcons = [...selectedIcons, ...selectedIcons];
-
-        return duplicatedIcons
-            .sort(() => Math.random() - 0.5)
-            .map((icon, index) => ({
-                id: index,
-                icon,
-                isFlipped: false,
-                isMatched: false,
-            }));
-    };
-
-    const startNewGame = () => {
-        setCards(shuffleCards());
-        setFlippedCards([]);
-        setMatchedCards([]);
-        setShakeCards([]);
-        setMoves(0);
-        setIsWon(false);
-        setCanFlip(true);
-        setTimer(0);
-        setIsPlaying(true);
-        setLastAction(null);
-    };
-
     const handleCardClick = (id: number) => {
-        if (!canFlip) return;
-        const clickedCard = cards.find(c => c.id === id);
-        if (!clickedCard || clickedCard.isFlipped || clickedCard.isMatched) return;
+        // Prevent clicking if disabled or already flipped/matched
+        if (isDisabled) return;
 
+        const card = cards.find(c => c.id === id);
+        if (!card || card.isFlipped || card.isMatched) return;
+
+        // Start timer on first flip
         if (!isPlaying) setIsPlaying(true);
 
+        setLastAction('flip');
+
+        // Update cards state to flip the card
         const newCards = cards.map(c =>
             c.id === id ? { ...c, isFlipped: true } : c
         );
         setCards(newCards);
-        setLastAction('flip');
 
         const newFlipped = [...flippedCards, id];
         setFlippedCards(newFlipped);
 
         if (newFlipped.length === 2) {
-            setMoves(m => m + 1);
-            setCanFlip(false);
+            setTurns(t => t + 1);
+            setIsDisabled(true); // Block interaction while comparing
             checkForMatch(newFlipped, newCards);
         }
     };
@@ -116,15 +124,16 @@ export const useMemoryGame = (difficulty: Difficulty) => {
 
         if (card1 && card2 && card1.icon === card2.icon) {
             // Match found
-            const newMatched = [...matchedCards, id1, id2];
-            setMatchedCards(newMatched);
             setLastAction('match');
+            const newMatched = [...matchedCards, id1, id2];
 
             setCards(prev => prev.map(c =>
                 (c.id === id1 || c.id === id2) ? { ...c, isMatched: true, isFlipped: true } : c
             ));
+
+            setMatchedCards(newMatched);
             setFlippedCards([]);
-            setCanFlip(true);
+            setIsDisabled(false);
 
             if (newMatched.length === cards.length) {
                 setIsWon(true);
@@ -136,26 +145,27 @@ export const useMemoryGame = (difficulty: Difficulty) => {
             setTimeout(() => {
                 setLastAction('error');
                 setShakeCards([id1, id2]);
+
                 setTimeout(() => {
                     setShakeCards([]);
                     setCards(prev => prev.map(c =>
                         (c.id === id1 || c.id === id2) ? { ...c, isFlipped: false } : c
                     ));
                     setFlippedCards([]);
-                    setCanFlip(true);
-                }, 500); // Wait for shake animation
-            }, 600); // Wait for flip animation
+                    setIsDisabled(false);
+                }, 400); // Duration matches CSS shake animation
+            }, 600); // Time for flip animation to be visible
         }
     };
 
-    // Reset helper for triggers
     const clearLastAction = () => setLastAction(null);
 
     return {
         cards,
-        moves,
+        moves: turns,
         timer,
         isWon,
+        isDisabled,
         startNewGame,
         handleCardClick,
         cols: DIFFICULTY_SETTINGS[difficulty].cols,
